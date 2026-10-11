@@ -1,10 +1,11 @@
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import model.Document;
 import service.DocumentLoader;
-import service.TextProcessor;
+import service.SearchIndexer;
 
 public class Main {
 
@@ -14,7 +15,7 @@ public class Main {
         System.out.println("========================================");
 
         DocumentLoader loader = new DocumentLoader();
-        TextProcessor processor = new TextProcessor();
+        SearchIndexer indexer = new SearchIndexer();
 
         try {
             List<Document> documents = loader.loadDocuments(
@@ -26,39 +27,73 @@ public class Main {
                 return;
             }
 
+            indexer.buildIndex(documents);
+
             System.out.println(
-                    "\nDocuments loaded: " + documents.size()
+                    "\nDocuments indexed: " + indexer.getDocumentCount()
             );
 
-            for (Document document : documents) {
-                List<String> tokens = processor.process(
-                        document.getContent()
-                );
+            System.out.println(
+                    "Unique searchable terms: " + indexer.getTermCount()
+            );
 
-                System.out.println();
+            System.out.println("\nINDEXED TERMS");
+            System.out.println(
+                    String.join(", ", indexer.getIndexedTerms())
+            );
+
+            displayPostings(indexer, "java");
+            displayPostings(indexer, "collections");
+            displayPostings(indexer, "blockchain");
+
+            System.out.println("\nREBUILD CHECK");
+
+            Map<Integer, Integer> before =
+                    indexer.getPostings("java");
+
+            indexer.buildIndex(documents);
+
+            Map<Integer, Integer> after =
+                    indexer.getPostings("java");
+
+            if (before.equals(after)) {
                 System.out.println(
-                        "Document: " + document.getFilename()
+                        "PASS: Rebuilding preserves the java frequencies."
                 );
-                System.out.println(
-                        "Searchable word count: " + tokens.size()
-                );
-                System.out.println(
-                        "Words: " + String.join(", ", tokens)
+            } else {
+                throw new IllegalStateException(
+                        "Rebuilding changed the java frequencies."
                 );
             }
-
-            System.out.println("\nNORMALIZATION CHECK");
-
-            List<String> example = processor.process(
-                    "JAVA, Java! The collections are useful."
-            );
-
-            System.out.println(example);
 
         } catch (IOException exception) {
             System.out.println(
                     "\nUnable to load documents: "
                             + exception.getMessage()
+            );
+        }
+    }
+
+    private static void displayPostings(
+            SearchIndexer indexer,
+            String term) {
+
+        System.out.println("\nTERM: " + term);
+
+        Map<Integer, Integer> postings = indexer.getPostings(term);
+
+        if (postings.isEmpty()) {
+            System.out.println("No documents contain this term.");
+            return;
+        }
+
+        for (Map.Entry<Integer, Integer> entry : postings.entrySet()) {
+            Document document = indexer.getDocument(entry.getKey());
+
+            System.out.println(
+                    document.getFilename()
+                            + " -> " + entry.getValue()
+                            + " occurrence(s)"
             );
         }
     }
