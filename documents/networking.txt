@@ -1,0 +1,4 @@
+Computer networking connects devices.
+Networks use protocols to exchange data.
+TCP and IP support communication across networks.
+Network security protects devices and data.

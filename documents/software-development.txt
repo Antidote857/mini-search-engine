@@ -1,0 +1,4 @@
+Software development involves planning, programming, and testing.
+Java and Python are used in software development.
+Developers use collections to organize application data.
+Testing helps developers find software defects.

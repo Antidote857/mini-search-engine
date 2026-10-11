@@ -1,0 +1,4 @@
+A database stores and organizes data.
+SQL is used to query a relational database.
+Database indexes help improve query performance.
+Java applications can connect to a database.

@@ -1,0 +1,4 @@
+Java is a programming language.
+Java supports object oriented programming.
+Java collections include lists, sets, and maps.
+Collections help Java developers organize data.
