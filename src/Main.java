@@ -1,10 +1,11 @@
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 
 import model.Document;
+import model.SearchResult;
 import service.DocumentLoader;
+import service.SearchEngine;
 import service.SearchIndexer;
 
 public class Main {
@@ -29,42 +30,18 @@ public class Main {
 
             indexer.buildIndex(documents);
 
+            SearchEngine engine = new SearchEngine(indexer);
+
             System.out.println(
                     "\nDocuments indexed: " + indexer.getDocumentCount()
             );
 
-            System.out.println(
-                    "Unique searchable terms: " + indexer.getTermCount()
-            );
-
-            System.out.println("\nINDEXED TERMS");
-            System.out.println(
-                    String.join(", ", indexer.getIndexedTerms())
-            );
-
-            displayPostings(indexer, "java");
-            displayPostings(indexer, "collections");
-            displayPostings(indexer, "blockchain");
-
-            System.out.println("\nREBUILD CHECK");
-
-            Map<Integer, Integer> before =
-                    indexer.getPostings("java");
-
-            indexer.buildIndex(documents);
-
-            Map<Integer, Integer> after =
-                    indexer.getPostings("java");
-
-            if (before.equals(after)) {
-                System.out.println(
-                        "PASS: Rebuilding preserves the java frequencies."
-                );
-            } else {
-                throw new IllegalStateException(
-                        "Rebuilding changed the java frequencies."
-                );
-            }
+            displaySearch(engine, "java collections");
+            displaySearch(engine, "JAVA");
+            displaySearch(engine, "java java");
+            displaySearch(engine, "blockchain");
+            displaySearch(engine, "");
+            displaySearch(engine, "the and is");
 
         } catch (IOException exception) {
             System.out.println(
@@ -74,27 +51,42 @@ public class Main {
         }
     }
 
-    private static void displayPostings(
-            SearchIndexer indexer,
-            String term) {
+    private static void displaySearch(
+            SearchEngine engine,
+            String query) {
 
-        System.out.println("\nTERM: " + term);
+        System.out.println("\nSearch query: \"" + query + "\"");
 
-        Map<Integer, Integer> postings = indexer.getPostings(term);
+        try {
+            List<SearchResult> results = engine.search(query);
 
-        if (postings.isEmpty()) {
-            System.out.println("No documents contain this term.");
-            return;
-        }
+            if (results.isEmpty()) {
+                System.out.println("No matching documents found.");
+                return;
+            }
 
-        for (Map.Entry<Integer, Integer> entry : postings.entrySet()) {
-            Document document = indexer.getDocument(entry.getKey());
+            int position = 1;
 
-            System.out.println(
-                    document.getFilename()
-                            + " -> " + entry.getValue()
-                            + " occurrence(s)"
-            );
+            for (SearchResult result : results) {
+                System.out.println(
+                        position + ". "
+                                + result.getDocument().getFilename()
+                );
+
+                System.out.println(
+                        "   Score: " + result.getScore()
+                );
+
+                System.out.println(
+                        "   Matched terms: "
+                                + String.join(", ", result.getMatchedTerms())
+                );
+
+                position++;
+            }
+
+        } catch (IllegalArgumentException exception) {
+            System.out.println(exception.getMessage());
         }
     }
 }
